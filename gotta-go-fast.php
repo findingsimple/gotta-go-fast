@@ -412,7 +412,7 @@ function action_scheduler_insert_post( $postarr, $wp_error = false ) {
 	 */
 	$post_parent = apply_filters( 'wp_insert_post_parent', $post_parent, $post_ID, compact( array_keys( $postarr ) ), $postarr );
 	//$post_name = wp_unique_post_slug( $post_name, $post_ID, $post_status, $post_type, $post_parent ); //CHANGE
-	$post_name = '';
+	$post_name = sanitize_title($post_title);
 	// Don't unslash.
 	$post_mime_type = isset( $postarr['post_mime_type'] ) ? $postarr['post_mime_type'] : '';
 	// Expected_slashed (everything!).
