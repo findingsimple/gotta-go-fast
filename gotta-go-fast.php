@@ -639,3 +639,51 @@ function action_scheduler_insert_post( $postarr, $wp_error = false ) {
 	return $post_ID;
 }
 
+
+function get_completed_payment_count_short( $order ) {
+
+	$completed_payment_count = ( false !== $order->order && ( isset( $order->order->paid_date ) || $order->order->has_status( $order->get_paid_order_statuses() ) ) ) ? 1 : 0;
+	// not all gateways will call $order->payment_complete() so we need to find renewal orders with a paid status rather than just a _paid_date
+	$paid_status_renewal_orders = get_posts( array(
+		'posts_per_page' => 2,
+		'post_status'    => $order->get_paid_order_statuses(),
+		'post_type'      => 'shop_order',
+		'fields'         => 'ids',
+		'orderby'        => 'date',
+		'order'          => 'desc',
+		'meta_query'     => array(
+			array(
+				'key'     => '_subscription_renewal',
+				'compare' => '=',
+				'value'   => $order->id,
+				'type'    => 'numeric',
+			),
+		),
+	) );
+	// because some stores may be using custom order status plugins, we also can't rely on order status to find paid orders, so also check for a _paid_date
+	$paid_date_renewal_orders = get_posts( array(
+		'posts_per_page' => 2,
+		'post_status'    => 'any',
+		'post_type'      => 'shop_order',
+		'fields'         => 'ids',
+		'orderby'        => 'date',
+		'order'          => 'desc',
+		'meta_query'     => array(
+			array(
+				'key'     => '_subscription_renewal',
+				'compare' => '=',
+				'value'   => $order->id,
+				'type'    => 'numeric',
+			),
+			array(
+				'key'     => '_paid_date',
+				'compare' => 'EXISTS',
+			),
+		),
+	) );
+	$paid_renewal_orders = array_unique( array_merge( $paid_date_renewal_orders, $paid_status_renewal_orders ) );
+	if ( ! empty( $paid_renewal_orders ) ) {
+		$completed_payment_count += count( $paid_renewal_orders );
+	}
+	return apply_filters( 'woocommerce_subscription_payment_completed_count', $completed_payment_count, $order );
+}
