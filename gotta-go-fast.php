@@ -659,6 +659,8 @@ function get_completed_payment_count_short( $order ) {
 				'type'    => 'numeric',
 			),
 		),
+		'update_post_meta_cache' => false,
+		'update_post_term_cache' => false,
 	) );
 	// because some stores may be using custom order status plugins, we also can't rely on order status to find paid orders, so also check for a _paid_date
 	$paid_date_renewal_orders = get_posts( array(
@@ -680,6 +682,8 @@ function get_completed_payment_count_short( $order ) {
 				'compare' => 'EXISTS',
 			),
 		),
+		'update_post_meta_cache' => false,
+		'update_post_term_cache' => false,
 	) );
 	$paid_renewal_orders = array_unique( array_merge( $paid_date_renewal_orders, $paid_status_renewal_orders ) );
 	if ( ! empty( $paid_renewal_orders ) ) {
