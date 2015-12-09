@@ -667,7 +667,7 @@ function get_completed_payment_count_short( $order ) {
 		'order'          => 'desc',
 		'meta_key'       => '_subscription_renewal',
 		'meta_compare'   => '='
-		'meta_value_num' => $this->id,
+		'meta_value_num' => $order->id,
 	) );
 
 	// its more efficient (maybe? this is what I am testing) on large sites to compute this separately and then get the intersection using php
