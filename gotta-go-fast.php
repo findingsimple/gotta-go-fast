@@ -644,6 +644,7 @@ function get_completed_payment_count_short( $order ) {
 
 	$completed_payment_count = ( false !== $order->order && ( isset( $order->order->paid_date ) || $order->order->has_status( $order->get_paid_order_statuses() ) ) ) ? 1 : 0;
 	// not all gateways will call $order->payment_complete() so we need to find renewal orders with a paid status rather than just a _paid_date
+
 	$paid_status_renewal_orders = get_posts( array(
 		'posts_per_page' => 2,
 		'post_status'    => $order->get_paid_order_statuses(),
@@ -651,43 +652,43 @@ function get_completed_payment_count_short( $order ) {
 		'fields'         => 'ids',
 		'orderby'        => 'date',
 		'order'          => 'desc',
-		'meta_query'     => array(
-			array(
-				'key'     => '_subscription_renewal',
-				'compare' => '=',
-				'value'   => $order->id,
-				'type'    => 'numeric',
-			),
-		),
-		'update_post_meta_cache' => false,
-		'update_post_term_cache' => false,
+		'meta_key'       => '_subscription_renewal',
+		'meta_compare'   => '='
+		'meta_value_num' => $order->id,
 	) );
+
 	// because some stores may be using custom order status plugins, we also can't rely on order status to find paid orders, so also check for a _paid_date
-	$paid_date_renewal_orders = get_posts( array(
-		'posts_per_page' => 2,
+	$renewal_orders = get_posts( array(
+		'posts_per_page' => -1,
 		'post_status'    => 'any',
 		'post_type'      => 'shop_order',
 		'fields'         => 'ids',
 		'orderby'        => 'date',
 		'order'          => 'desc',
-		'meta_query'     => array(
-			array(
-				'key'     => '_subscription_renewal',
-				'compare' => '=',
-				'value'   => $order->id,
-				'type'    => 'numeric',
-			),
-			array(
-				'key'     => '_paid_date',
-				'compare' => 'EXISTS',
-			),
-		),
-		'update_post_meta_cache' => false,
-		'update_post_term_cache' => false,
+		'meta_key'       => '_subscription_renewal',
+		'meta_compare'   => '='
+		'meta_value_num' => $this->id,
 	) );
+
+	// its more efficient (maybe? this is what I am testing) on large sites to compute this separately and then get the intersection using php
+	$paid_date_orders = get_posts( array(
+		'posts_per_page' => -1,
+		'post_status'    => 'any',
+		'post_type'      => 'shop_order',
+		'fields'         => 'ids',
+		'orderby'        => 'date',
+		'order'          => 'desc',
+		'meta_key'       => '_paid_date',
+		'meta_compare'   => 'EXISTS'
+	) );
+
+	$paid_date_renewal_orders = array_intersect( $renewal_orders, $paid_date_orders );
+
 	$paid_renewal_orders = array_unique( array_merge( $paid_date_renewal_orders, $paid_status_renewal_orders ) );
+
 	if ( ! empty( $paid_renewal_orders ) ) {
 		$completed_payment_count += count( $paid_renewal_orders );
 	}
+
 	return apply_filters( 'woocommerce_subscription_payment_completed_count', $completed_payment_count, $order );
 }
