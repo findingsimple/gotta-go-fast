@@ -666,7 +666,7 @@ function get_completed_payment_count_short( $order ) {
 		'orderby'        => 'date',
 		'order'          => 'desc',
 		'meta_key'       => '_subscription_renewal',
-		'meta_compare'   => '='
+		'meta_compare'   => '=',
 		'meta_value_num' => $order->id,
 	) );
 
