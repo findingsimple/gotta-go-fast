@@ -646,40 +646,43 @@ function get_completed_payment_count_short( $order ) {
 	// not all gateways will call $order->payment_complete() so we need to find renewal orders with a paid status rather than just a _paid_date
 
 	$paid_status_renewal_orders = get_posts( array(
-		'posts_per_page' => 2,
-		'post_status'    => $order->get_paid_order_statuses(),
-		'post_type'      => 'shop_order',
-		'fields'         => 'ids',
-		'orderby'        => 'date',
-		'order'          => 'desc',
-		'meta_key'       => '_subscription_renewal',
-		'meta_compare'   => '=',
-		'meta_value_num' => $order->id,
+		'posts_per_page'         => 2,
+		'post_status'            => $order->get_paid_order_statuses(),
+		'post_type'              => 'shop_order',
+		'fields'                 => 'ids',
+		'orderby'                => 'date',
+		'order'                  => 'desc',
+		'meta_key'               => '_subscription_renewal',
+		'meta_compare'           => '=',
+		'meta_value_num'         => $order->id,
+		'update_post_term_cache' => false,
 	) );
 
 	// because some stores may be using custom order status plugins, we also can't rely on order status to find paid orders, so also check for a _paid_date
 	$renewal_orders = get_posts( array(
-		'posts_per_page' => -1,
-		'post_status'    => 'any',
-		'post_type'      => 'shop_order',
-		'fields'         => 'ids',
-		'orderby'        => 'date',
-		'order'          => 'desc',
-		'meta_key'       => '_subscription_renewal',
-		'meta_compare'   => '=',
-		'meta_value_num' => $order->id,
+		'posts_per_page'         => -1,
+		'post_status'            => 'any',
+		'post_type'              => 'shop_order',
+		'fields'                 => 'ids',
+		'orderby'                => 'date',
+		'order'                  => 'desc',
+		'meta_key'               => '_subscription_renewal',
+		'meta_compare'           => '=',
+		'meta_value_num'         => $order->id,
+		'update_post_term_cache' => false,
 	) );
 
 	// its more efficient (maybe? this is what I am testing) on large sites to compute this separately and then get the intersection using php
 	$paid_date_orders = get_posts( array(
-		'posts_per_page' => -1,
-		'post_status'    => 'any',
-		'post_type'      => 'shop_order',
-		'fields'         => 'ids',
-		'orderby'        => 'date',
-		'order'          => 'desc',
-		'meta_key'       => '_paid_date',
-		'meta_compare'   => 'EXISTS'
+		'posts_per_page'         => -1,
+		'post_status'            => 'any',
+		'post_type'              => 'shop_order',
+		'fields'                 => 'ids',
+		'orderby'                => 'date',
+		'order'                  => 'desc',
+		'meta_key'               => '_paid_date',
+		'meta_compare'           => 'EXISTS',
+		'update_post_term_cache' => false,
 	) );
 
 	$paid_date_renewal_orders = array_intersect( $renewal_orders, $paid_date_orders );
