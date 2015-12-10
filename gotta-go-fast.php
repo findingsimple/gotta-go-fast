@@ -1,10 +1,10 @@
 <?php
 /**
  * Plugin Name: Gotta go fast
- * Plugin URI: 
+ * Plugin URI:
  * Description: Prototyping performance tweaks
- * Author: 
- * Author URI: 
+ * Author:
+ * Author URI:
  * Version:
  *
  */
@@ -33,7 +33,7 @@ function the_magic( $query ) {
 	// Don't slow down queries that wouldn't include action_log comments anyway
 	foreach ( array('ID', 'parent', 'post_author', 'post_name', 'post_parent', 'type', 'post_type', 'post_id', 'post_ID') as $key ) {
 		if ( !empty($query->query_vars[$key]) ) {
-			return; 
+			return;
 		}
 	}
 
@@ -73,7 +73,7 @@ function filter_comment_query_clauses( $clauses, $query ) {
 		$clauses['where'] .= " {$wpdb->comments}.comment_type NOT IN ('" . implode( "','", $comment_types ) . "') ";
 	}
 
-	return $clauses; 
+	return $clauses;
 }
 
 
@@ -695,3 +695,29 @@ function get_completed_payment_count_short( $order ) {
 
 	return apply_filters( 'woocommerce_subscription_payment_completed_count', $completed_payment_count, $order );
 }
+
+// From Patrick Garman: https://gist.github.com/pmgarman/d64c768754dbc0ff5f49
+// Remove unmoderated comment counts from the admin menu
+function pmgarman_unmoderated_comment_counts( $stats, $post_id ) {
+	global $wpdb;
+
+	if ( 0 === $post_id ) {
+		$stats = json_decode( json_encode( array(
+			'moderated'      => 0,
+			'approved'       => 0,
+			'post-trashed'   => 0,
+			'trash'          => 0,
+			'total_comments' => 0
+		) ) );
+	}
+
+	return $stats;
+}
+add_filter( 'wp_count_comments', 'pmgarman_unmoderated_comment_counts', 10, 2 );
+
+// If running WooCommerce, remove their filter so that nothing funky goes down
+remove_filter( 'wp_count_comments', array( 'WC_Comments', 'wp_count_comments' ), 10 );
+
+// Order counts in the admin menu can be removed once this filter is merged into WooCommerce
+// https://github.com/woothemes/woocommerce/pull/9820
+add_filter( 'woocommerce_include_order_count_in_menu', '__return_false' );
