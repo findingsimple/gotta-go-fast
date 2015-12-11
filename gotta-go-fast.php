@@ -117,6 +117,7 @@ function pmgarman_unmoderated_comment_counts( $stats, $post_id ) {
 function example_remove_dashboard_widget() {
  	remove_meta_box( 'woocommerce_dashboard_status', 'dashboard', 'core' );
 	remove_meta_box( 'woocommerce_dashboard_recent_reviews', 'dashboard', 'core' );
+	remove_meta_box( 'dashboard_activity', 'dashboard', 'normal' );
 } 
 
 
