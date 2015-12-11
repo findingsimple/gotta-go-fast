@@ -26,6 +26,16 @@ function gotta_go_fast() {
 
 	// Add our own filter
 	add_action( 'pre_get_comments', 'the_magic', 10, 1);
+
+	// If running WooCommerce, remove their filter so that nothing funky goes down
+	remove_filter( 'wp_count_comments', array( 'WC_Comments', 'wp_count_comments' ), 10 );
+
+	// Remove unmoderated comment counts from the admin menu
+	add_filter( 'wp_count_comments', 'pmgarman_unmoderated_comment_counts', 10, 2 );
+
+	// Order counts in the admin menu can be removed once this filter is merged into WooCommerce
+	// https://github.com/woothemes/woocommerce/pull/9820
+	add_filter( 'woocommerce_include_order_count_in_menu', '__return_false' );
 }
 
 function the_magic( $query ) {
@@ -76,11 +86,30 @@ function filter_comment_query_clauses( $clauses, $query ) {
 	return $clauses;
 }
 
+/**
+ * From Patrick Garman: https://gist.github.com/pmgarman/d64c768754dbc0ff5f49
+ *
+ * Removes unmoderated comment counts from the admin menu
+ */
+function pmgarman_unmoderated_comment_counts( $stats, $post_id ) {
+	global $wpdb;
+
+	if ( 0 === $post_id ) {
+		$stats = json_decode( json_encode( array(
+			'moderated'      => 0,
+			'approved'       => 0,
+			'post-trashed'   => 0,
+			'trash'          => 0,
+			'total_comments' => 0
+		) ) );
+	}
+
+	return $stats;
+}
 
 /**
- * IGNORE BELOW HERE FOR NOW
+ * The following are copies of core WP functions without use of wp_unique_post_slug()
  */
-
 
 /**
  * Update a post with new post data.
@@ -638,86 +667,3 @@ function action_scheduler_insert_post( $postarr, $wp_error = false ) {
 	do_action( 'wp_insert_post', $post_ID, $post, $update );
 	return $post_ID;
 }
-
-
-function get_completed_payment_count_short( $order ) {
-
-	$completed_payment_count = ( false !== $order->order && ( isset( $order->order->paid_date ) || $order->order->has_status( $order->get_paid_order_statuses() ) ) ) ? 1 : 0;
-	// not all gateways will call $order->payment_complete() so we need to find renewal orders with a paid status rather than just a _paid_date
-
-	$paid_status_renewal_orders = get_posts( array(
-		'posts_per_page'         => 2,
-		'post_status'            => $order->get_paid_order_statuses(),
-		'post_type'              => 'shop_order',
-		'fields'                 => 'ids',
-		'orderby'                => 'date',
-		'order'                  => 'desc',
-		'meta_key'               => '_subscription_renewal',
-		'meta_compare'           => '=',
-		'meta_value_num'         => $order->id,
-		'update_post_term_cache' => false,
-	) );
-
-	// because some stores may be using custom order status plugins, we also can't rely on order status to find paid orders, so also check for a _paid_date
-	$renewal_orders = get_posts( array(
-		'posts_per_page'         => -1,
-		'post_status'            => 'any',
-		'post_type'              => 'shop_order',
-		'fields'                 => 'ids',
-		'orderby'                => 'date',
-		'order'                  => 'desc',
-		'meta_key'               => '_subscription_renewal',
-		'meta_compare'           => '=',
-		'meta_value_num'         => $order->id,
-		'update_post_term_cache' => false,
-	) );
-
-	// its more efficient (maybe? this is what I am testing) on large sites to compute this separately and then get the intersection using php
-	$paid_date_orders = get_posts( array(
-		'posts_per_page'         => -1,
-		'post_status'            => 'any',
-		'post_type'              => 'shop_order',
-		'fields'                 => 'ids',
-		'orderby'                => 'date',
-		'order'                  => 'desc',
-		'meta_key'               => '_paid_date',
-		'meta_compare'           => 'EXISTS',
-		'update_post_term_cache' => false,
-	) );
-
-	$paid_date_renewal_orders = array_intersect( $renewal_orders, $paid_date_orders );
-
-	$paid_renewal_orders = array_unique( array_merge( $paid_date_renewal_orders, $paid_status_renewal_orders ) );
-
-	if ( ! empty( $paid_renewal_orders ) ) {
-		$completed_payment_count += count( $paid_renewal_orders );
-	}
-
-	return apply_filters( 'woocommerce_subscription_payment_completed_count', $completed_payment_count, $order );
-}
-
-// From Patrick Garman: https://gist.github.com/pmgarman/d64c768754dbc0ff5f49
-// Remove unmoderated comment counts from the admin menu
-function pmgarman_unmoderated_comment_counts( $stats, $post_id ) {
-	global $wpdb;
-
-	if ( 0 === $post_id ) {
-		$stats = json_decode( json_encode( array(
-			'moderated'      => 0,
-			'approved'       => 0,
-			'post-trashed'   => 0,
-			'trash'          => 0,
-			'total_comments' => 0
-		) ) );
-	}
-
-	return $stats;
-}
-add_filter( 'wp_count_comments', 'pmgarman_unmoderated_comment_counts', 10, 2 );
-
-// If running WooCommerce, remove their filter so that nothing funky goes down
-remove_filter( 'wp_count_comments', array( 'WC_Comments', 'wp_count_comments' ), 10 );
-
-// Order counts in the admin menu can be removed once this filter is merged into WooCommerce
-// https://github.com/woothemes/woocommerce/pull/9820
-add_filter( 'woocommerce_include_order_count_in_menu', '__return_false' );
