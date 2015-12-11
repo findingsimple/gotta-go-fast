@@ -36,6 +36,9 @@ function gotta_go_fast() {
 	// Order counts in the admin menu can be removed once this filter is merged into WooCommerce
 	// https://github.com/woothemes/woocommerce/pull/9820
 	add_filter( 'woocommerce_include_order_count_in_menu', '__return_false' );
+
+	// Remove WC Status Dashboard Widget
+	add_action('wp_dashboard_setup', 'example_remove_dashboard_widget' );
 }
 
 function the_magic( $query ) {
@@ -106,6 +109,16 @@ function pmgarman_unmoderated_comment_counts( $stats, $post_id ) {
 
 	return $stats;
 }
+
+
+/**
+ * Remove WC Widgets that are performance hogs on large sites
+ */
+function example_remove_dashboard_widget() {
+ 	remove_meta_box( 'woocommerce_dashboard_status', 'dashboard', 'core' );
+	remove_meta_box( 'woocommerce_dashboard_recent_reviews', 'dashboard', 'core' );
+} 
+
 
 /**
  * The following are copies of core WP functions without use of wp_unique_post_slug()
